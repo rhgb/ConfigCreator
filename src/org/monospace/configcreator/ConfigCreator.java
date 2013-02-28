@@ -1,28 +1,19 @@
 package org.monospace.configcreator;
-
 import java.awt.EventQueue;
 
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JTextField;
-import javax.swing.GroupLayout;
-import javax.swing.GroupLayout.Alignment;
-import javax.swing.LayoutStyle.ComponentPlacement;
-import javax.swing.JComboBox;
-import javax.swing.DefaultComboBoxModel;
-import javax.swing.JToggleButton;
-import javax.swing.JToolBar;
 import javax.swing.JMenuBar;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JSeparator;
 import java.awt.BorderLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.io.File;
+import java.rmi.UnexpectedException;
 
 public class ConfigCreator extends JFrame {
 
@@ -30,14 +21,13 @@ public class ConfigCreator extends JFrame {
 	 * 
 	 */
 	private static final long serialVersionUID = -5059373169601854784L;
+	/* backend variables */
+	private File currentFile;
+	private boolean modified;
+	private ConfigSet configSet;
+	/* frontend variables */
 	private JPanel contentPane;
 	private JPanel statusBar;
-	private class Config {
-		private HashMap<String,String> list;
-		public Config() {
-			list = new HashMap<String,String>();
-		}
-	}
 	/**
 	 * Launch the application.
 	 */
@@ -58,6 +48,11 @@ public class ConfigCreator extends JFrame {
 	 * Create the frame.
 	 */
 	public ConfigCreator() {
+		/* initialize backend */
+		currentFile = null;
+		modified = false;
+		configSet = new ConfigSet();
+		/* initialize UI */
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 450, 300);
 		
@@ -97,7 +92,24 @@ public class ConfigCreator extends JFrame {
 		contentPane.add(statusBar, BorderLayout.SOUTH);
 	}
 	private void newFile() {
-		//TODO
+		if (modified) {
+			int result = JOptionPane.showConfirmDialog(this, "The current file have not been saved. Do you want to save it?");
+			switch (result) {
+			case JOptionPane.YES_OPTION:
+				saveFile();
+				break;
+			case JOptionPane.NO_OPTION:
+				closeFile();
+				break;
+			case JOptionPane.CANCEL_OPTION:
+				return;
+			default:
+				throw new UnknownError("Unexpected JOptionPane returns");
+			}	
+		}
+		configSet = new ConfigSet();
+		currentFile = null;
+		modified = false;
 	}
 	private void readFile() {
 		//TODO
@@ -106,6 +118,9 @@ public class ConfigCreator extends JFrame {
 		//TODO
 	}
 	private void saveAs() {
+		//TODO
+	}
+	private void closeFile() {
 		//TODO
 	}
 	private void exit() {
