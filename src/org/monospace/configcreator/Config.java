@@ -1,9 +1,9 @@
 package org.monospace.configcreator;
 
-public class Config implements Comparable<Config> {
+public class Config {
 	private String key;
 	private String value;
-	private int priority;
+	private ConfigTemplateElement template;
 	/**
 	 * @param key
 	 * @param value
@@ -12,7 +12,10 @@ public class Config implements Comparable<Config> {
 		this.key = key;
 		this.value = value;
 	}
-
+	/**
+	 * @param str String to be converted
+	 * @return converted <tt>Config</tt> object
+	 */
 	public static Config parse(String str) {
 		String[] segs = str.split("=", 2);
 		if (segs.length != 2) return null;
@@ -35,9 +38,15 @@ public class Config implements Comparable<Config> {
 	 * @return <tt>false</tt> if <tt>other</tt> not an instance of <tt>Config</tt>.
 	 * <tt>true</tt> if {@code other.key} equals to <tt>key</tt>. <tt>false</tt> elsewise.
 	 */
+	@Override
 	public boolean equals(Object other) {
-		if (!(other instanceof Config)) return false;
-		return ((Config) other).key.equals(key);
+		if (other instanceof Config) {
+			return ((Config) other).key.equals(key);
+		}
+		if (other instanceof ConfigTemplateElement) {
+			return ((ConfigTemplateElement) other).getKey().equals(key);
+		}
+		return false;
 	}
 	/**
 	 * @return the key
@@ -64,18 +73,23 @@ public class Config implements Comparable<Config> {
 		this.value = value.trim();
 	}
 	/**
-	 * @return the priority value, used for arrange
+	 * @return the template
 	 */
-	public int getPriority() {
-		return priority;
+	public ConfigTemplateElement getTemplate() {
+		return template;
+	}
+
+	/**
+	 * @param template the template to set
+	 */
+	public void setTemplate(ConfigTemplateElement template) {
+		this.template = template;
 	}
 	/**
-	 * Compare to another <tt>Config</tt> by <tt>priority</tt>, break ties with <tt>key</tt>.
+	 * validate the config.
+	 * @return <tt>true</tt> if <tt>template</tt> is not <tt>null</tt> and the config is valid. <tt>false</tt> otherwise.
 	 */
-	@Override
-	public int compareTo(Config o) {
-		if (o.priority < priority) return -1;
-		if (o.priority > priority) return 1;
-		return key.compareToIgnoreCase(o.key);
+	public boolean validate() {
+		return template == null ? false : template.validate(this);
 	}
 }
