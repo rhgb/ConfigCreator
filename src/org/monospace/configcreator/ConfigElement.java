@@ -37,12 +37,12 @@ public abstract class ConfigElement implements Comparable<ConfigElement> {
 	/**
 	 * @param value the value to set
 	 */
-	public void setValue(String value) {
+	public void setValue(String value, boolean sync) {
 		if (value == null) throw new NullPointerException();
 		if (!value.trim().equals(this.value)) {
 			this.value = value.trim();
 		}
-		if (!this.value.equals(component.getValue())) {
+		if (sync && !this.value.equals(component.getValue())) {
 			component.setValue(this.value);
 		}
 	}
@@ -103,20 +103,20 @@ public abstract class ConfigElement implements Comparable<ConfigElement> {
 	}
 	public void setComponent(ConfigComponent component) {
 		this.component = component;
-		this.component.setEditListener(new EditListener() {
+		this.component.addEditListener(new EditListener() {
 			@Override
 			public void contentChanged(EditEvent e) {
 				String newVal = e.getContent().trim();
 				if (!newVal.equals(value)) {
-					setValue(newVal);
+					setValue(newVal, false);
 					checkValidity();
 				}
 			}
 		});
 	}
-	public void setEditListener(EditListener listener) {
+	public void addEditListener(EditListener listener) {
 		if (component != null) {
-			component.setEditListener(listener);
+			component.addEditListener(listener);
 		}
 	}
 	@Override

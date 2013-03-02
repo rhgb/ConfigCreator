@@ -19,11 +19,11 @@ import javax.swing.event.DocumentListener;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.monospace.configcreator.ConfigComponent.EditEvent;
 
 public class ConfigSet {
 	public class ConfigSelectElement extends ConfigElement {
 		public class ConfigSelectComponent extends ConfigComponent {
-			private static final long serialVersionUID = 1332688457345533256L;
 			private JComboBox<ConfigOption> comboBox;
 			public ConfigSelectComponent(String name, Vector<ConfigOption> options) {
 				super(name);
@@ -32,13 +32,11 @@ public class ConfigSet {
 					@Override
 					public void itemStateChanged(ItemEvent e) {
 						if (e.getStateChange() == ItemEvent.SELECTED) {
-							if (listener != null) {
-								listener.contentChanged(new EditEvent(((ConfigOption) e.getItem()).getValue()));
-							}
+							invokeEditListeners(new EditEvent(((ConfigOption) e.getItem()).getValue()));
 						}
 					}
 				});
-				insertInputComponent(comboBox);
+				input = comboBox;
 			}
 			@Override
 			public void setValue(String value) {
@@ -48,6 +46,7 @@ public class ConfigSet {
 				} else {
 					comboBox.setSelectedIndex(0);
 				}
+				comboBox.setVisible(true);
 			}
 			@Override
 			public String getValue() {
@@ -116,30 +115,31 @@ public class ConfigSet {
 	}
 	public class ConfigTextElement extends ConfigElement {
 		public class ConfigTextComponent extends ConfigComponent {
-			private static final long serialVersionUID = -1106200769578908704L;
 			private JTextField textField;
 			public ConfigTextComponent(String name) {
 				super(name);
 				textField = new JTextField();
+				textField.setColumns(18);
 				textField.getDocument().addDocumentListener(new DocumentListener() {
 					@Override
 					public void removeUpdate(DocumentEvent e) {
-						listener.contentChanged(new EditEvent(textField.getText().trim()));
+						invokeEditListeners(new EditEvent(textField.getText().trim()));
 					}
 					@Override
 					public void insertUpdate(DocumentEvent e) {
-						listener.contentChanged(new EditEvent(textField.getText().trim()));
+						invokeEditListeners(new EditEvent(textField.getText().trim()));
 					}
 					@Override
 					public void changedUpdate(DocumentEvent e) {
-						listener.contentChanged(new EditEvent(textField.getText().trim()));
+						invokeEditListeners(new EditEvent(textField.getText().trim()));
 					}
 				});
-				insertInputComponent(textField);
+				input = textField;
 			}
 			@Override
 			public void setValue(String value) {
 				textField.setText(value);
+				textField.setVisible(true);
 			}
 			@Override
 			public String getValue() {
@@ -170,9 +170,14 @@ public class ConfigSet {
 			return super.isValid() && getValue().matches(IPADDRESS_PATTERN);
 		}
 	}
+	
 	private ArrayList<ConfigElement> list;
+	private boolean modified;
+	private ConfigComponent.EditListener listener;
+	
 	public ConfigSet() {
 		list = new ArrayList<ConfigElement>();
+		modified = false;
 	}
 	public void parseTemplate(String source) throws RuntimeException {
 		ArrayList<ConfigElement> templist = new ArrayList<ConfigElement>();
@@ -207,8 +212,17 @@ public class ConfigSet {
 					}
 					break;
 				default:
-					break;
+					throw new JSONException("");
 				}
+				conf.addEditListener(new ConfigComponent.EditListener() {
+					@Override
+					public void contentChanged(EditEvent e) {
+						modified = true;
+						if (listener != null) {
+							listener.contentChanged(null);
+						}
+					}
+				});
 				templist.add(conf);
 			}
 		} catch (JSONException e) {
@@ -250,13 +264,19 @@ public class ConfigSet {
 			if (value.length() >= 2 && value.charAt(0) == '"' && value.charAt(value.length() - 1) == '"') {
 				value = value.substring(1, value.length() - 1);
 			}
-			int index = list.indexOf(key);
+			int index = -1;
+			for (int i = 0; i < list.size(); i++) {
+				if (list.get(i).equals(key)) {
+					index = i;
+					break;
+				}
+			} 
 			if (index < 0) {
 				System.err.print("Invalid: ");
 				System.err.println(line);
 				continue;
 			}
-			list.get(index).setValue(value);
+			list.get(index).setValue(value, true);
 		}
 		scanner.close();
 	}
@@ -272,5 +292,14 @@ public class ConfigSet {
 		for (int i = 0; i < list.size(); i++) {
 			list.get(i).clearValue();
 		}
+	}
+	public boolean isModified() {
+		return modified;
+	}
+	public void setModified(boolean m) {
+		modified = m;
+	}
+	public void setListener(ConfigComponent.EditListener listener) {
+		this.listener = listener;
 	}
 }

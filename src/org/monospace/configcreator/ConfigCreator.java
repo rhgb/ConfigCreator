@@ -13,30 +13,29 @@ import javax.swing.JOptionPane;
 import javax.swing.JSeparator;
 import javax.swing.UIManager;
 
+import org.monospace.configcreator.ConfigComponent.EditEvent;
+
 import java.awt.BorderLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
-import javax.swing.BoxLayout;
-import javax.swing.SpringLayout;
+import java.awt.GridLayout;
 
 public class ConfigCreator extends JFrame {
 
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = -5059373169601854784L;
 	/* backend variables */
 	private File currentFile;
-	private boolean modified;
 	private ConfigSet configSet;
-	private static final String templateFileName = "C:\\Users\\rhgb\\git\\ConfigCreator\\template.conf";
+	private static final String templateFileName = "template.conf";
 	/* frontend variables */
 	private JPanel contentPane;
 	private JPanel statusBar;
 	private JPanel configPanel;
 	private JFileChooser fileChooser;
+	private ConfigPreviewFrame preview;
 	/**
 	 * Launch the application.
 	 */
@@ -63,7 +62,6 @@ public class ConfigCreator extends JFrame {
 	public ConfigCreator() {
 		/* initialize backend */
 		currentFile = null;
-		modified = false;
 		configSet = new ConfigSet();
 		try {
 			configSet.parseTemplate(new File(templateFileName));
@@ -72,11 +70,17 @@ public class ConfigCreator extends JFrame {
 			e1.printStackTrace();
 			System.exit(-1);
 		}
-		
+		configSet.setListener(new ConfigComponent.EditListener() {
+			@Override
+			public void contentChanged(EditEvent e) {
+				preview.refreshContent();
+			}
+		});
 		
 		/* initialize UI */
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setBounds(100, 100, 450, 300);
+		setLocationByPlatform(true);
+		setTitle("Config Creator");
 		
 		JMenuBar menuBar = new JMenuBar();
 		setJMenuBar(menuBar);
@@ -131,6 +135,20 @@ public class ConfigCreator extends JFrame {
 			}
 		});
 		mnFile.add(mntmQuit);
+		
+		JMenu mnEdit = new JMenu("Edit");
+		menuBar.add(mnEdit);
+		
+		JMenuItem mntmPreview = new JMenuItem("Preview...");
+		mntmPreview.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				preview.refreshContent();
+				preview.setVisible(true);
+			}
+		});
+		mnEdit.add(mntmPreview);
+		
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		setContentPane(contentPane);
@@ -141,15 +159,15 @@ public class ConfigCreator extends JFrame {
 		
 		configPanel = new JPanel();
 		contentPane.add(configPanel, BorderLayout.CENTER);
-		configPanel.setLayout(new BoxLayout(configPanel, BoxLayout.Y_AXIS));
+		configPanel.setLayout(new GridLayout(0, 3, 5, 5));
 		
 		for (int i = 0; i < configSet.size(); i++) {
-			configPanel.add(configSet.getComponent(i));
+			configPanel.add(configSet.getComponent(i).getNameLabel());
+			configPanel.add(configSet.getComponent(i).getInput());
+			configPanel.add(configSet.getComponent(i).getMessageLabel());
 		}
-		
-		JPanel spring = new JPanel();
-		configPanel.add(spring);
-		spring.setLayout(new SpringLayout());
+
+		setSize(this.getPreferredSize());
 		
 		fileChooser = new JFileChooser();
 		fileChooser.setFileFilter(new FileFilter() {
@@ -162,60 +180,72 @@ public class ConfigCreator extends JFrame {
 				return (arg0.getName().equals("system.conf") && arg0.isFile()) || arg0.isDirectory();
 			}
 		});
+		fileChooser.setSelectedFile(new File("system.conf"));
+		
+		preview = new ConfigPreviewFrame(configSet);
+		preview.setVisible(false);
 	}
 	private void newFile() {
 		closeFile();
 	}
 	private void openFile() {
+		if (configSet.isModified() && !closeFile()) {
+			return;
+		}
 		int res = fileChooser.showOpenDialog(this);
 		if (res != JFileChooser.APPROVE_OPTION) return;
 		File file = fileChooser.getSelectedFile();
 		try {
 			configSet.loadFromFile(file);
+		}catch (FileNotFoundException e) {
+			JOptionPane.showMessageDialog(this, "The file \""+file.getName()+"\" does not exist.", "Open file", JOptionPane.ERROR_MESSAGE);
 		} catch (IOException | RuntimeException e) {
 			e.printStackTrace();
 			return;
 		}
-		modified = false;
+		configSet.setModified(false);
 		currentFile = file;
 	}
-	private void saveFile() {
-		if (!modified) return;
+	private boolean saveFile() {
 		if (currentFile == null || !currentFile.canWrite()) {
-			saveAs();
+			return saveAs();
 		} else {
 			try {
 				configSet.writeToFile(currentFile);
 			} catch (IOException e) {
 				e.printStackTrace();
-				return;
+				return false;
 			}
-			modified = false;
+			configSet.setModified(false);
+			return true;
 		}
 	}
-	private void saveAs() {
+	private boolean saveAs() {
 		int res = fileChooser.showSaveDialog(this);
-		if (res != JFileChooser.APPROVE_OPTION) return;
+		if (res != JFileChooser.APPROVE_OPTION) return false;
 		File file = fileChooser.getSelectedFile();
 		try {
 			configSet.writeToFile(file);
 		} catch (IOException e) {
 			e.printStackTrace();
-			return;
+			return false;
 		}
-		modified = false;
+		configSet.setModified(false);
 		currentFile = file;
+		return true;
 	}
 	private boolean closeFile() {
-		if (modified) {
+		if (configSet.isModified()) {
 			int result = JOptionPane.showConfirmDialog(this, "The current file have not been saved. Do you want to save it?");
 			switch (result) {
 			case JOptionPane.YES_OPTION:
-				saveFile();
-				break;
+				if(saveFile()){
+					break;
+				} else {
+					return false;
+				}
 			case JOptionPane.NO_OPTION:
-				closeFile();
-				break;
+				return true;
 			case JOptionPane.CANCEL_OPTION:
 				return false;
 			default:
@@ -224,7 +254,7 @@ public class ConfigCreator extends JFrame {
 		}
 		configSet.clearValue();
 		currentFile = null;
-		modified = false;
+		configSet.setModified(false);
 		return true;
 	}
 	private void exit() {

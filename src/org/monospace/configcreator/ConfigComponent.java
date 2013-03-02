@@ -1,15 +1,14 @@
 package org.monospace.configcreator;
 
 import java.awt.Color;
-import java.awt.FlowLayout;
+import java.util.ArrayList;
 import java.util.EventListener;
 import java.util.EventObject;
 
 import javax.swing.JComponent;
 import javax.swing.JLabel;
-import javax.swing.JPanel;
 
-public abstract class ConfigComponent extends JPanel {
+public abstract class ConfigComponent {
 	public interface EditListener extends EventListener {
 		void contentChanged(EditEvent e);
 	}
@@ -22,42 +21,45 @@ public abstract class ConfigComponent extends JPanel {
 			return (String) source;
 		}
 	}
-	private static final long serialVersionUID = -5051561242351334873L;
 	protected JLabel nameLabel;
 	protected JLabel messageLabel;
 	protected JComponent input;
-	protected EditListener listener;
+	protected ArrayList<EditListener> listenerList;
+	
+	protected static final int NAME_LABEL_WIDTH = 200;
+	protected static final int INPUT_WIDTH = 400;
 	public ConfigComponent(String name) {
-		setLayout(new FlowLayout(FlowLayout.LEFT, 5, 5));
 		nameLabel = new JLabel(name);
-		add(nameLabel);
 		messageLabel = new JLabel();
 		messageLabel.setForeground(Color.RED);
 		messageLabel.setText("Invalid input");
 		messageLabel.setVisible(false);
-		add(messageLabel);
+		listenerList = new ArrayList<EditListener>(2);
 	}
-	protected void insertInputComponent(JComponent input) {
-		if (this.input != null) {
-			remove(this.input);
-		}
-		this.input = input;
-		for (int i = 0; i < getComponentCount(); i++) {
-			if (getComponent(i) == nameLabel) {
-				add(input, i+1);
-				break;
-			}
-		}
+	public void addEditListener(EditListener listener) {
+		listenerList.add(listener);
 	}
-	public void setEditListener(EditListener listener) {
-		this.listener = listener;
+	public void invokeEditListeners(EditEvent e) {
+		for (int i = 0; i < listenerList.size(); i++) {
+			listenerList.get(i).contentChanged(e);
+		}
 	}
 	public void setName(String name) {
 		nameLabel.setText(name);
+		nameLabel.setVisible(true);
 	}
 	public abstract void setValue(String value);
 	public abstract String getValue();
 	public void setWarning(boolean b) {
 		messageLabel.setVisible(b);
+	}
+	public JLabel getNameLabel() {
+		return nameLabel;
+	}
+	public JLabel getMessageLabel() {
+		return messageLabel;
+	}
+	public JComponent getInput() {
+		return input;
 	}
 }
