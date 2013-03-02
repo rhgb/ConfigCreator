@@ -1,59 +1,276 @@
 package org.monospace.configcreator;
 
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Scanner;
+import java.util.Vector;
+
+import javax.swing.JComboBox;
+import javax.swing.JTextField;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class ConfigSet {
-	private ArrayList<Config> list;
-	private ConfigTemplate template;
-	public ConfigSet(ConfigTemplate t) {
-		list = new ArrayList<Config>();
-		template = t;
+	public class ConfigSelectElement extends ConfigElement {
+		public class ConfigSelectComponent extends ConfigComponent {
+			private static final long serialVersionUID = 1332688457345533256L;
+			private JComboBox<ConfigOption> comboBox;
+			public ConfigSelectComponent(String name, Vector<ConfigOption> options) {
+				super(name);
+				comboBox = new JComboBox<ConfigOption>(options);
+				comboBox.addItemListener(new ItemListener() {
+					@Override
+					public void itemStateChanged(ItemEvent e) {
+						if (e.getStateChange() == ItemEvent.SELECTED) {
+							if (listener != null) {
+								listener.contentChanged(new EditEvent(((ConfigOption) e.getItem()).getValue()));
+							}
+						}
+					}
+				});
+				insertInputComponent(comboBox);
+			}
+			@Override
+			public void setValue(String value) {
+				int index = options.indexOf(value);
+				if (index >= 0) {
+					comboBox.setSelectedIndex(index);
+				} else {
+					comboBox.setSelectedIndex(0);
+				}
+			}
+			@Override
+			public String getValue() {
+				return ((ConfigOption) comboBox.getSelectedItem()).getValue();
+			}
+		}
+		public class ConfigOption implements Comparable<ConfigOption> {
+			private String value;
+			private String desc;
+			public ConfigOption(String value, String desc) {
+				this.value = value;
+				this.desc = desc;
+			}
+			@Override
+			public int compareTo(ConfigOption o) {
+				return value.compareTo(o.getValue());
+			}
+			@Override
+			public String toString() {
+				return desc;
+			}
+			@Override
+			public boolean equals(Object o) {
+				if (o instanceof ConfigOption) {
+					return ((ConfigOption) o).getValue().equals(value);
+				}
+				if (o instanceof String) {
+					return value.equals(o);
+				}
+				return false;
+			}
+			public String getValue() {
+				return value;
+			}
+			public void setValue(String value) {
+				this.value = value;
+			}
+			public String getDesc() {
+				return desc;
+			}
+			public void setDesc(String desc) {
+				this.desc = desc;
+			}
+		}
+		private Vector<ConfigOption> options;
+		
+		public ConfigSelectElement(String key, String desc, int priority) {
+			super(key, desc, priority);
+			this.options = new Vector<ConfigOption>();
+			setComponent(new ConfigSelectComponent(getDescription(), options));
+		}
+		@Override
+		public boolean isValid() {
+			if (super.isValid()) {
+				for (int i = 0; i < options.size(); i++) {
+					if (options.get(i).equals(getValue())) {
+						return true;
+					}
+				}
+			}
+			return false;
+		}
+		public void addOption(String value, String desc) {
+			options.add(new ConfigOption(value, desc));
+		}
+	}
+	public class ConfigTextElement extends ConfigElement {
+		public class ConfigTextComponent extends ConfigComponent {
+			private static final long serialVersionUID = -1106200769578908704L;
+			private JTextField textField;
+			public ConfigTextComponent(String name) {
+				super(name);
+				textField = new JTextField();
+				textField.getDocument().addDocumentListener(new DocumentListener() {
+					@Override
+					public void removeUpdate(DocumentEvent e) {
+						listener.contentChanged(new EditEvent(textField.getText().trim()));
+					}
+					@Override
+					public void insertUpdate(DocumentEvent e) {
+						listener.contentChanged(new EditEvent(textField.getText().trim()));
+					}
+					@Override
+					public void changedUpdate(DocumentEvent e) {
+						listener.contentChanged(new EditEvent(textField.getText().trim()));
+					}
+				});
+				insertInputComponent(textField);
+			}
+			@Override
+			public void setValue(String value) {
+				textField.setText(value);
+			}
+			@Override
+			public String getValue() {
+				// TODO Auto-generated method stub
+				return null;
+			}
+		}
+		public ConfigTextElement(String key, String desc, int priority) {
+			super(key, desc, priority);
+			setComponent(new ConfigTextComponent(getDescription()));
+		}
+		@Override
+		public boolean isValid() {
+			return super.isValid();
+		}
+	}
+	public class ConfigIPAddrElement extends ConfigTextElement {
+	    private static final String IPADDRESS_PATTERN = 
+	    		"^([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\." +
+	    		"([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\." +
+	    		"([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\." +
+	    		"([01]?\\d\\d?|2[0-4]\\d|25[0-5])$";
+		public ConfigIPAddrElement(String key, String desc, int priority) {
+			super(key, desc, priority);
+		}
+		@Override
+		public boolean isValid() {
+			return super.isValid() && getValue().matches(IPADDRESS_PATTERN);
+		}
+	}
+	private ArrayList<ConfigElement> list;
+	public ConfigSet() {
+		list = new ArrayList<ConfigElement>();
+	}
+	public void parseTemplate(String source) throws RuntimeException {
+		ArrayList<ConfigElement> templist = new ArrayList<ConfigElement>();
+		try {
+			JSONArray json = new JSONArray(source);
+			for (int i = 0; i < json.length(); i++) {
+				JSONObject element = json.getJSONObject(i);
+				String key = element.getString("key");
+				String desc = key;
+				int priority = 0;
+				if (element.has("priority")) {
+					priority = element.getInt("priority");
+				}
+				if (element.has("desc")) {
+					desc = element.getString("desc");
+				}
+				ConfigElement conf = null;
+				switch (element.getString("type")) {
+				case "text":
+					conf = new ConfigTextElement(key, desc, priority);
+					break;
+				case "ipaddr":
+					conf = new ConfigIPAddrElement(key, desc, priority);
+					break;
+				case "select":
+					JSONArray options = element.getJSONArray("options");
+					ConfigSelectElement confref = new ConfigSelectElement(key, desc, priority);
+					for (int j = 0; j < options.length(); j++) {
+						JSONObject option = options.getJSONObject(j);
+						confref.addOption(option.getString("value"), option.getString("desc"));
+						conf = confref;
+					}
+					break;
+				default:
+					break;
+				}
+				templist.add(conf);
+			}
+		} catch (JSONException e) {
+			throw new RuntimeException("Error parsing source");
+		}
+		list = templist;
+	}
+	public void parseTemplate(File file) throws IOException, RuntimeException {
+		byte[] b = new byte[(int) file.length()];
+		FileInputStream in = new FileInputStream(file);
+		in.read(b);
+		in.close();
+		String src = new String(b);
+		parseTemplate(src);
+	}
+	public ConfigElement get(int i) {
+		return list.get(i);
+	}
+	public int size() {
+		return list.size();
+	}
+	public ConfigComponent getComponent(int i) {
+		return list.get(i).getComponent();
 	}
 	public void loadFromFile(File file) throws IOException, RuntimeException {
 		Scanner scanner = new Scanner(file);
-		ArrayList<Config> tempList = new ArrayList<Config>();
+		clearValue();
 		while (scanner.hasNextLine()) {
 			String line = scanner.nextLine();
 			if (line.length() == 0 || line.charAt(0) == '#' || line.trim().length() == 0) {
 				continue;
 			}
-			Config conf = Config.parse(line);
-			if (conf == null || tempList.contains(conf) || !template.validate(conf)) {
-				System.err.print("Invalid: ");
-				System.err.println(conf);
+			String[] segs = line.split("=", 2);
+			if (segs.length != 2) {
 				continue;
 			}
-			tempList.add(conf);
+			String key = segs[0].trim().toUpperCase();
+			String value = segs[1].trim();
+			if (value.length() >= 2 && value.charAt(0) == '"' && value.charAt(value.length() - 1) == '"') {
+				value = value.substring(1, value.length() - 1);
+			}
+			int index = list.indexOf(key);
+			if (index < 0) {
+				System.err.print("Invalid: ");
+				System.err.println(line);
+				continue;
+			}
+			list.get(index).setValue(value);
 		}
 		scanner.close();
-		list = tempList;
 	}
 	public void writeToFile(File file) throws IOException {
-		Comparator<Config> comp = new Comparator<Config>() {
-			@Override
-			public int compare(Config o1, Config o2) {
-				if (o1 == null || o2 == null) throw new NullPointerException();
-				int p1 = template.priority(o1);
-				int p2 = template.priority(o2);
-				if (p1 > p2) return -1;
-				if (p1 < p2) return 1;
-				return o1.getKey().compareTo(o2.getKey());
-			}
-		};
-		Collections.sort(list, comp);
+		Collections.sort(list);
 		PrintWriter writer = new PrintWriter(file);
 		for (int i = 0; i < list.size(); i++) {
 			writer.println(list.get(i));
 		}
 		writer.close();
 	}
-	public void clear() {
-		list.clear();
+	public void clearValue() {
+		for (int i = 0; i < list.size(); i++) {
+			list.get(i).clearValue();
+		}
 	}
 }

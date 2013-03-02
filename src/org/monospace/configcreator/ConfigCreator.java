@@ -18,6 +18,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
+import javax.swing.BoxLayout;
+import javax.swing.SpringLayout;
 
 public class ConfigCreator extends JFrame {
 
@@ -29,11 +31,11 @@ public class ConfigCreator extends JFrame {
 	private File currentFile;
 	private boolean modified;
 	private ConfigSet configSet;
-	private ConfigTemplate template;
 	private static final String templateFileName = "C:\\Users\\rhgb\\git\\ConfigCreator\\template.conf";
 	/* frontend variables */
 	private JPanel contentPane;
 	private JPanel statusBar;
+	private JPanel configPanel;
 	private JFileChooser fileChooser;
 	/**
 	 * Launch the application.
@@ -55,7 +57,6 @@ public class ConfigCreator extends JFrame {
 			}
 		});
 	}
-
 	/**
 	 * Create the frame.
 	 */
@@ -63,14 +64,14 @@ public class ConfigCreator extends JFrame {
 		/* initialize backend */
 		currentFile = null;
 		modified = false;
-		template = new ConfigTemplate();
+		configSet = new ConfigSet();
 		try {
-			template.parse(new File(templateFileName));
+			configSet.parseTemplate(new File(templateFileName));
 		} catch (IOException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
+			System.exit(-1);
 		}
-		configSet = new ConfigSet(template);
 		
 		
 		/* initialize UI */
@@ -137,6 +138,18 @@ public class ConfigCreator extends JFrame {
 		
 		statusBar = new JPanel();
 		contentPane.add(statusBar, BorderLayout.SOUTH);
+		
+		configPanel = new JPanel();
+		contentPane.add(configPanel, BorderLayout.CENTER);
+		configPanel.setLayout(new BoxLayout(configPanel, BoxLayout.Y_AXIS));
+		
+		for (int i = 0; i < configSet.size(); i++) {
+			configPanel.add(configSet.getComponent(i));
+		}
+		
+		JPanel spring = new JPanel();
+		configPanel.add(spring);
+		spring.setLayout(new SpringLayout());
 		
 		fileChooser = new JFileChooser();
 		fileChooser.setFileFilter(new FileFilter() {
@@ -209,7 +222,7 @@ public class ConfigCreator extends JFrame {
 				throw new UnknownError("Unexpected JOptionPane returns");
 			}
 		}
-		configSet.clear();
+		configSet.clearValue();
 		currentFile = null;
 		modified = false;
 		return true;
