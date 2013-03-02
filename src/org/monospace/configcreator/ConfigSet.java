@@ -2,9 +2,11 @@ package org.monospace.configcreator;
 
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -230,12 +232,15 @@ public class ConfigSet {
 		}
 		list = templist;
 	}
-	public void parseTemplate(File file) throws IOException, RuntimeException {
-		byte[] b = new byte[(int) file.length()];
-		FileInputStream in = new FileInputStream(file);
-		in.read(b);
-		in.close();
-		String src = new String(b);
+	public void parseTemplate(InputStream in) throws IOException, RuntimeException {
+		InputStreamReader reader = new InputStreamReader(in, "UTF-8");
+		BufferedReader br = new BufferedReader(reader);
+		String line;
+		String src = "";
+		while ((line = br.readLine()) != null) {
+			src += line;
+		}
+		br.close();
 		parseTemplate(src);
 	}
 	public ConfigElement get(int i) {

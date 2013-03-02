@@ -29,7 +29,7 @@ public class ConfigCreator extends JFrame {
 	/* backend variables */
 	private File currentFile;
 	private ConfigSet configSet;
-	private static final String templateFileName = "template.conf";
+	private static final String templateFileName = "/resource/template.conf";
 	/* frontend variables */
 	private JPanel contentPane;
 	private JPanel statusBar;
@@ -64,7 +64,7 @@ public class ConfigCreator extends JFrame {
 		currentFile = null;
 		configSet = new ConfigSet();
 		try {
-			configSet.parseTemplate(new File(templateFileName));
+			configSet.parseTemplate(getClass().getResourceAsStream(templateFileName));
 		} catch (IOException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
