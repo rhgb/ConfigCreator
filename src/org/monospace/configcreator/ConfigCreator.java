@@ -13,69 +13,44 @@ import javax.swing.JOptionPane;
 import javax.swing.JSeparator;
 import javax.swing.UIManager;
 
-import org.monospace.configcreator.ConfigComponent.EditEvent;
-
 import java.awt.BorderLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.awt.GridLayout;
 
 public class ConfigCreator extends JFrame {
 
 	private static final long serialVersionUID = -5059373169601854784L;
 	/* backend variables */
 	private File currentFile;
-	private ConfigSet configSet;
+	private ConfigModel model;
 	private static final String templateFileName = "/resource/template.conf";
 	/* frontend variables */
 	private JPanel contentPane;
 	private JPanel statusBar;
-	private JPanel configPanel;
+	private ConfigController controller;
 	private JFileChooser fileChooser;
-	private ConfigPreviewFrame preview;
-	/**
-	 * Launch the application.
-	 */
-	public static void main(String[] args) {
-		try {
-			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-		} catch (Exception e1) {
-			e1.printStackTrace();
-		}
-		EventQueue.invokeLater(new Runnable() {
-			public void run() {
-				try {
-					ConfigCreator frame = new ConfigCreator();
-					frame.setVisible(true);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		});
-	}
 	/**
 	 * Create the frame.
 	 */
 	public ConfigCreator() {
 		/* initialize backend */
 		currentFile = null;
-		configSet = new ConfigSet();
+		model = new ConfigModel();
+		
 		try {
-			configSet.parseTemplate(getClass().getResourceAsStream(templateFileName));
+			model.parseTemplate(getClass().getResourceAsStream(templateFileName));
+//			model.parseTemplate(new FileInputStream("resource/template.conf"));
 		} catch (IOException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 			System.exit(-1);
 		}
-		configSet.setListener(new ConfigComponent.EditListener() {
-			@Override
-			public void contentChanged(EditEvent e) {
-				preview.refreshContent();
-			}
-		});
+		
+		controller = new ConfigController(model);
 		
 		/* initialize UI */
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -143,8 +118,7 @@ public class ConfigCreator extends JFrame {
 		mntmPreview.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				preview.refreshContent();
-				preview.setVisible(true);
+				controller.showPreview();
 			}
 		});
 		mnEdit.add(mntmPreview);
@@ -157,15 +131,7 @@ public class ConfigCreator extends JFrame {
 		statusBar = new JPanel();
 		contentPane.add(statusBar, BorderLayout.SOUTH);
 		
-		configPanel = new JPanel();
-		contentPane.add(configPanel, BorderLayout.CENTER);
-		configPanel.setLayout(new GridLayout(0, 3, 5, 5));
-		
-		for (int i = 0; i < configSet.size(); i++) {
-			configPanel.add(configSet.getComponent(i).getNameLabel());
-			configPanel.add(configSet.getComponent(i).getInput());
-			configPanel.add(configSet.getComponent(i).getMessageLabel());
-		}
+		contentPane.add(controller.getViewPanel(), BorderLayout.CENTER);
 
 		setSize(this.getPreferredSize());
 		
@@ -181,29 +147,26 @@ public class ConfigCreator extends JFrame {
 			}
 		});
 		fileChooser.setSelectedFile(new File("system.conf"));
-		
-		preview = new ConfigPreviewFrame(configSet);
-		preview.setVisible(false);
 	}
 	private void newFile() {
 		closeFile();
 	}
 	private void openFile() {
-		if (configSet.isModified() && !closeFile()) {
+		if (model.isModified() && !closeFile()) {
 			return;
 		}
 		int res = fileChooser.showOpenDialog(this);
 		if (res != JFileChooser.APPROVE_OPTION) return;
 		File file = fileChooser.getSelectedFile();
 		try {
-			configSet.loadFromFile(file);
+			model.loadFromFile(file);
 		}catch (FileNotFoundException e) {
 			JOptionPane.showMessageDialog(this, "The file \""+file.getName()+"\" does not exist.", "Open file", JOptionPane.ERROR_MESSAGE);
 		} catch (IOException | RuntimeException e) {
 			e.printStackTrace();
 			return;
 		}
-		configSet.setModified(false);
+		model.setModified(false);
 		currentFile = file;
 	}
 	private boolean saveFile() {
@@ -211,12 +174,12 @@ public class ConfigCreator extends JFrame {
 			return saveAs();
 		} else {
 			try {
-				configSet.writeToFile(currentFile);
+				model.writeToFile(currentFile);
 			} catch (IOException e) {
 				e.printStackTrace();
 				return false;
 			}
-			configSet.setModified(false);
+			model.setModified(false);
 			return true;
 		}
 	}
@@ -225,17 +188,17 @@ public class ConfigCreator extends JFrame {
 		if (res != JFileChooser.APPROVE_OPTION) return false;
 		File file = fileChooser.getSelectedFile();
 		try {
-			configSet.writeToFile(file);
+			model.writeToFile(file);
 		} catch (IOException e) {
 			e.printStackTrace();
 			return false;
 		}
-		configSet.setModified(false);
+		model.setModified(false);
 		currentFile = file;
 		return true;
 	}
 	private boolean closeFile() {
-		if (configSet.isModified()) {
+		if (model.isModified()) {
 			int result = JOptionPane.showConfirmDialog(this, "The current file have not been saved. Do you want to save it?");
 			switch (result) {
 			case JOptionPane.YES_OPTION:
@@ -245,21 +208,41 @@ public class ConfigCreator extends JFrame {
 					return false;
 				}
 			case JOptionPane.NO_OPTION:
-				return true;
+				break;
 			case JOptionPane.CANCEL_OPTION:
 				return false;
 			default:
 				throw new UnknownError("Unexpected JOptionPane returns");
 			}
 		}
-		configSet.clearValue();
+		model.clearValue();
 		currentFile = null;
-		configSet.setModified(false);
+		model.setModified(false);
 		return true;
 	}
 	private void exit() {
 		if (closeFile()) {
 			System.exit(0);
 		}
+	}
+	/**
+	 * Launch the application.
+	 */
+	public static void main(String[] args) {
+		try {
+			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+		} catch (Exception e1) {
+			e1.printStackTrace();
+		}
+		EventQueue.invokeLater(new Runnable() {
+			public void run() {
+				try {
+					ConfigCreator frame = new ConfigCreator();
+					frame.setVisible(true);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		});
 	}
 }

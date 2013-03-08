@@ -1,20 +1,23 @@
 package org.monospace.configcreator;
 
-import org.monospace.configcreator.ConfigComponent.EditEvent;
-import org.monospace.configcreator.ConfigComponent.EditListener;
 
 public abstract class ConfigElement implements Comparable<ConfigElement> {
 	private String key;
 	private String value;
 	private String description;
 	private int priority;
-	private ConfigComponent component;
+//	private ConfigComponent component;
 	public ConfigElement(String key, String desc, int priority) {
 		this.setKey(key);
 		this.setDescription(desc);
 		this.setPriority(priority);
 		this.value = "";
 	}
+	/**
+	 * Create a component based on this element.
+	 * @return the ConfigComponent created
+	 */
+	public abstract ConfigComponent createComponent();
 	/**
 	 * @return the key
 	 */
@@ -37,18 +40,14 @@ public abstract class ConfigElement implements Comparable<ConfigElement> {
 	/**
 	 * @param value the value to set
 	 */
-	public void setValue(String value, boolean sync) {
+	public void setValue(String value) {
 		if (value == null) throw new NullPointerException();
 		if (!value.trim().equals(this.value)) {
 			this.value = value.trim();
 		}
-		if (sync && !this.value.equals(component.getValue())) {
-			component.setValue(this.value);
-		}
 	}
 	public void clearValue() {
 		this.value = "";
-		component.setValue("");
 	}
 	/**
 	 * @return the description
@@ -80,9 +79,9 @@ public abstract class ConfigElement implements Comparable<ConfigElement> {
 	}
 	public boolean checkValidity() {
 		boolean res = isValid();
-		if (component != null) {
-			component.setWarning(!res);
-		}
+//		if (component != null) {
+//			component.setWarning(!res);
+//		}
 		return res;
 	}
 	@Override
@@ -98,7 +97,7 @@ public abstract class ConfigElement implements Comparable<ConfigElement> {
 	public String toString() {
 		return key + "=\"" + value + "\"";
 	}
-	public ConfigComponent getComponent() {
+/*	public ConfigComponent getComponent() {
 		return component;
 	}
 	public void setComponent(ConfigComponent component) {
@@ -118,7 +117,7 @@ public abstract class ConfigElement implements Comparable<ConfigElement> {
 		if (component != null) {
 			component.addEditListener(listener);
 		}
-	}
+	} */
 	@Override
 	public int compareTo(ConfigElement o) {
 		if (priority < o.getPriority()) return -1;
