@@ -28,7 +28,7 @@ public class ConfigView {
 		this.components = new ArrayList<ConfigComponent>(model.size());
 		createView();
 		bindController();
-		model.setListener(new ModelChangeListener() {
+		model.setChangeListener(new ModelChangeListener() {
 			@Override
 			public void modelChanged() {
 				for (int i = 0; i < components.size(); i++) {
@@ -64,7 +64,7 @@ public class ConfigView {
 	}
 	private void bindController() {
 		for (int i = 0; i < components.size(); i++) {
-			components.get(i).addEditListener(new IndexedEditListener(i));
+			components.get(i).setEditListener(new IndexedEditListener(i));
 		}
 	}
 }

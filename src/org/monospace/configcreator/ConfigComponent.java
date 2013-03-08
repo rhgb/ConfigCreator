@@ -1,7 +1,6 @@
 package org.monospace.configcreator;
 
 import java.awt.Color;
-import java.util.ArrayList;
 
 import javax.swing.JComponent;
 import javax.swing.JLabel;
@@ -11,7 +10,7 @@ public abstract class ConfigComponent {
 	protected JLabel messageLabel;
 	protected JComponent input;
 	protected ConfigElement configElement;
-	protected ArrayList<EditListener> listenerList;
+	EditListener listener;
 	
 	protected static final int NAME_LABEL_WIDTH = 200;
 	protected static final int INPUT_WIDTH = 400;
@@ -22,15 +21,12 @@ public abstract class ConfigComponent {
 		messageLabel.setForeground(Color.RED);
 		messageLabel.setText("Invalid input");
 		messageLabel.setVisible(false);
-		listenerList = new ArrayList<EditListener>(2);
 	}
-	public void addEditListener(EditListener listener) {
-		listenerList.add(listener);
+	public void setEditListener(EditListener listener) {
+		this.listener = listener;
 	}
 	public void invokeEditListeners(String content) {
-		for (int i = 0; i < listenerList.size(); i++) {
-			listenerList.get(i).contentChanged(content);
-		}
+		listener.contentChanged(content);
 	}
 	public void setName(String name) {
 		nameLabel.setText(name);

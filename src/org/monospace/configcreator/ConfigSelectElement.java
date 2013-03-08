@@ -60,6 +60,7 @@ public class ConfigSelectElement extends ConfigElement {
 	public boolean isValid() {
 		if (super.isValid()) {
 			for (int i = 0; i < options.size(); i++) {
+				System.out.println(options.get(i).getValue() + "--" + getValue());
 				if (options.get(i).equals(getValue())) {
 					return true;
 				}

@@ -7,7 +7,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Scanner;
 
 
@@ -18,7 +17,8 @@ import org.json.JSONObject;
 public class ConfigModel {
 	private ArrayList<ConfigElement> list;
 	private boolean modified;
-	private ModelChangeListener listener;
+	private ModelChangeListener valueListener;
+	private ModelChangeListener modifyListener;
 	
 	public ConfigModel() {
 		list = new ArrayList<ConfigElement>();
@@ -111,8 +111,8 @@ public class ConfigModel {
 			list.get(index).checkValidity();
 		}
 		scanner.close();
-		if (listener != null) {
-			listener.modelChanged();
+		if (valueListener != null) {
+			valueListener.modelChanged();
 		}
 	}
 	@Override
@@ -125,7 +125,6 @@ public class ConfigModel {
 		return res;
 	}
 	public void writeToFile(File file) throws IOException {
-		Collections.sort(list);
 		PrintWriter writer = new PrintWriter(file);
 		for (int i = 0; i < list.size(); i++) {
 			writer.println(list.get(i));
@@ -145,8 +144,8 @@ public class ConfigModel {
 		for (int i = 0; i < list.size(); i++) {
 			list.get(i).clearValue();
 		}
-		if (listener != null) {
-			listener.modelChanged();
+		if (valueListener != null) {
+			valueListener.modelChanged();
 		}
 	}
 	public boolean isValid(int i) {
@@ -157,8 +156,14 @@ public class ConfigModel {
 	}
 	public void setModified(boolean m) {
 		modified = m;
+		if (modifyListener != null) {
+			modifyListener.modelChanged();
+		}
 	}
-	public void setListener(ModelChangeListener listener) {
-		this.listener = listener;
+	public void setChangeListener(ModelChangeListener listener) {
+		this.valueListener = listener;
+	}
+	public void setModifyListener(ModelChangeListener listener) {
+		this.modifyListener = listener;
 	}
 }

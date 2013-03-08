@@ -17,7 +17,7 @@ import java.awt.BorderLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
-import java.io.FileInputStream;
+//import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
@@ -49,6 +49,12 @@ public class ConfigCreator extends JFrame {
 			e1.printStackTrace();
 			System.exit(-1);
 		}
+		model.setModifyListener(new ModelChangeListener() {
+			@Override
+			public void modelChanged() {
+				updateTitle();
+			}
+		});
 		
 		controller = new ConfigController(model);
 		
@@ -148,6 +154,9 @@ public class ConfigCreator extends JFrame {
 		});
 		fileChooser.setSelectedFile(new File("system.conf"));
 	}
+	private void updateTitle() {
+		this.setTitle("ConfigCreator " + (currentFile != null ? currentFile.getAbsolutePath() : "") + (model.isModified() ? " *" : ""));
+	}
 	private void newFile() {
 		closeFile();
 	}
@@ -166,8 +175,8 @@ public class ConfigCreator extends JFrame {
 			e.printStackTrace();
 			return;
 		}
-		model.setModified(false);
 		currentFile = file;
+		model.setModified(false);
 	}
 	private boolean saveFile() {
 		if (currentFile == null || !currentFile.canWrite()) {
@@ -193,8 +202,8 @@ public class ConfigCreator extends JFrame {
 			e.printStackTrace();
 			return false;
 		}
-		model.setModified(false);
 		currentFile = file;
+		model.setModified(false);
 		return true;
 	}
 	private boolean closeFile() {
