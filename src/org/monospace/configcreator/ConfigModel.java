@@ -43,6 +43,10 @@ public class ConfigModel {
 				switch (element.getString("type")) {
 				case "text":
 					conf = new ConfigTextElement(key, desc, priority);
+					if (element.has("allowWhitespace")) {
+						boolean allow = element.getBoolean("allowWhitespace");
+						((ConfigTextElement) conf).setAllowWhitespace(allow);
+					}
 					break;
 				case "ipaddr":
 					conf = new ConfigIPAddrElement(key, desc, priority);

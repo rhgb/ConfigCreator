@@ -8,6 +8,7 @@ public class ConfigIPAddrElement extends ConfigTextElement {
     		"([01]?\\d\\d?|2[0-4]\\d|25[0-5])$";
 	public ConfigIPAddrElement(String key, String desc, int priority) {
 		super(key, desc, priority);
+		setAllowWhitespace(false);
 	}
 	@Override
 	public boolean isValid() {
