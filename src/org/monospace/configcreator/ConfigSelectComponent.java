@@ -12,12 +12,12 @@ public class ConfigSelectComponent extends ConfigComponent {
 	/**
 	 * 
 	 */
-	private JComboBox<ConfigOption> comboBox;
+	private JComboBox comboBox;
 	private Vector<ConfigOption> options;
 	public ConfigSelectComponent(ConfigElement element) {
 		super(element);
 		this.options = ((ConfigSelectElement) element).getOptions();
-		comboBox = new JComboBox<ConfigOption>(options);
+		comboBox = new JComboBox(options);
 		comboBox.addItemListener(new ItemListener() {
 			@Override
 			public void itemStateChanged(ItemEvent e) {

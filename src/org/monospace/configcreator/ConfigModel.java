@@ -40,22 +40,22 @@ public class ConfigModel {
 					desc = element.getString("desc");
 				}
 				ConfigElement conf = null;
-				switch (element.getString("type")) {
-				case "text":
+				String type = element.getString("type");
+				if (type.equals("text")) {
 					conf = new ConfigTextElement(key, desc, priority);
 					if (element.has("allowWhitespace")) {
 						boolean allow = element.getBoolean("allowWhitespace");
 						((ConfigTextElement) conf).setAllowWhitespace(allow);
 					}
-					break;
-				case "ipaddr":
+				}
+				else if (type.equals("ipaddr")) {
 					conf = new ConfigIPAddrElement(key, desc, priority);
-					break;
-				case "select":
+				}
+				else if ( type.equals("select")) {
 					JSONArray options = element.getJSONArray("options");
 					conf = new ConfigSelectElement(key, desc, priority, options);
-					break;
-				default:
+				}
+				else {
 					throw new JSONException("");
 				}
 				templist.add(conf);

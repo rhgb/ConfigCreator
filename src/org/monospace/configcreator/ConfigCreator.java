@@ -171,7 +171,7 @@ public class ConfigCreator extends JFrame {
 			model.loadFromFile(file);
 		}catch (FileNotFoundException e) {
 			JOptionPane.showMessageDialog(this, "The file \""+file.getName()+"\" does not exist.", "Open file", JOptionPane.ERROR_MESSAGE);
-		} catch (IOException | RuntimeException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			return;
 		}
