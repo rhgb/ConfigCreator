@@ -1,17 +1,9 @@
 package org.monospace.configcreator;
 import java.awt.EventQueue;
 
-import javax.swing.JPanel;
+import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.filechooser.FileFilter;
-import javax.swing.JFileChooser;
-import javax.swing.JFrame;
-import javax.swing.JMenuBar;
-import javax.swing.JMenu;
-import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
-import javax.swing.JSeparator;
-import javax.swing.UIManager;
 
 import java.awt.BorderLayout;
 import java.awt.event.ActionEvent;
@@ -28,9 +20,6 @@ public class ConfigCreator extends JFrame {
 	private File currentFile;
 	private ConfigModel model;
 	private static final String templateFileName = "/resource/template.conf";
-	/* frontend variables */
-	private JPanel contentPane;
-	private JPanel statusBar;
 	private ConfigController controller;
 	private JFileChooser fileChooser;
 	/**
@@ -45,7 +34,6 @@ public class ConfigCreator extends JFrame {
 			model.parseTemplate(getClass().getResourceAsStream(templateFileName));
 //			model.parseTemplate(new FileInputStream("resource/template.conf"));
 		} catch (IOException e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 			System.exit(-1);
 		}
@@ -59,7 +47,7 @@ public class ConfigCreator extends JFrame {
 		controller = new ConfigController(model);
 		
 		/* initialize UI */
-		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 		setLocationByPlatform(true);
 		setTitle("Config Creator");
 		
@@ -128,13 +116,13 @@ public class ConfigCreator extends JFrame {
 			}
 		});
 		mnEdit.add(mntmPreview);
-		
-		contentPane = new JPanel();
+
+		JPanel contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		setContentPane(contentPane);
 		contentPane.setLayout(new BorderLayout(0, 0));
-		
-		statusBar = new JPanel();
+
+		JPanel statusBar = new JPanel();
 		contentPane.add(statusBar, BorderLayout.SOUTH);
 		
 		contentPane.add(controller.getViewPanel(), BorderLayout.CENTER);
